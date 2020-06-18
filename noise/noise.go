@@ -5,6 +5,7 @@ import (
 	"github.com/faiface/beep/vorbis"
 	"github.com/faiface/beep/wav"
 	"io"
+	"log"
 )
 
 func ProcessVoice(in io.ReadCloser, out io.WriteSeeker) error {
@@ -16,7 +17,7 @@ func ProcessVoice(in io.ReadCloser, out io.WriteSeeker) error {
 		}
 		return nil
 	}()
-
+	log.Println("format:", format)
 	gain := effects.Gain{Streamer: streamer, Gain: 1000}
 	err = wav.Encode(out, &gain, format)
 	if err != nil {
