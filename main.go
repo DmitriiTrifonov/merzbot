@@ -50,6 +50,9 @@ func main() {
 		_, err = io.Copy(tempFile, resp.Body)
 		fWrite, err := os.Create("out.wav")
 		err = noise.ProcessVoice(tempFile, fWrite)
+		if err != nil {
+			log.Println(err)
+		}
 		p := &tb.Document{File: tb.FromDisk("out.wav"), FileName: "tmp.wav"}
 		_, _ = b.Send(m.Sender, p)
 		err = os.Remove("in.ogg")
