@@ -49,8 +49,8 @@ func main() {
 		}
 		tempFile, err := os.Create("in.oga")
 		_, err = io.Copy(tempFile, resp.Body)
-		cmd := exec.Command("ffmpeg", "-i", "in.oga", "in.wav")
-		err = cmd.Run()
+		cmdOgaToWav := exec.Command("ffmpeg", "-i", "in.oga", "in.wav")
+		err = cmdOgaToWav.Run()
 		if err != nil {
 			log.Println(err)
 		}
@@ -61,10 +61,16 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-		p := &tb.Document{File: tb.FromDisk("out.wav"), FileName: "tmp.wav"}
+		cmdWavToOga := exec.Command("ffmpeg", "-i", "out.wav", "-acodec", "libopus", "out.oga")
+		err = cmdWavToOga.Run()
+		p := &tb.Voice{
+			File: tb.FromDisk("out.oga"),
+		}
 		_, _ = b.Send(m.Sender, p)
-		err = os.Remove("in.ogg")
-		err = os.Remove("out.ogg")
+		err = os.Remove("in.oga")
+		err = os.Remove("out.oga")
+		err = os.Remove("in.wav")
+		err = os.Remove("out.wav")
 	})
 
 	b.Start()
