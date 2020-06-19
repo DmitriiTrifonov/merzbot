@@ -12,6 +12,7 @@ import (
 
 const (
 	errorMessage = "Cannot process the data!"
+	message      = "Please send me a voice message"
 )
 
 func main() {
@@ -33,6 +34,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	b.Handle("/start", func(m *tb.Message) {
+		_, _ = b.Send(m.Sender, message)
+	})
 
 	b.Handle(tb.OnVoice, func(m *tb.Message) {
 		voiceId := m.Voice.FileID
