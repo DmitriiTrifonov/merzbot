@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 )
 
 const (
@@ -46,10 +47,17 @@ func main() {
 			_, _ = b.Send(m.Sender, errorMessage)
 			return
 		}
-		tempFile, err := os.Create("in.ogg")
+		tempFile, err := os.Create("in.oga")
 		_, err = io.Copy(tempFile, resp.Body)
+		cmd := exec.Command("ffmpeg", "-i", "in.oga", "in.wav")
+		err = cmd.Run()
+		if err != nil {
+			log.Println(err)
+		}
+		tempWav, err := os.Open("in.wav")
+		defer tempWav.Close()
 		fWrite, err := os.Create("out.wav")
-		err = noise.ProcessVoice(tempFile, fWrite)
+		err = noise.ProcessVoice(tempWav, fWrite)
 		if err != nil {
 			log.Println(err)
 		}

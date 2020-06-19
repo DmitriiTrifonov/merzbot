@@ -9,7 +9,7 @@ import (
 )
 
 func ProcessVoice(in io.ReadCloser, out io.WriteSeeker) error {
-	streamer, format, err := vorbis.Decode(in)
+	streamer, format, err := wav.Decode(in)
 	defer func() error {
 		if streamer != nil {
 			err := streamer.Close()
