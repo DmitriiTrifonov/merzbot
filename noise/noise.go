@@ -2,7 +2,6 @@ package noise
 
 import (
 	"github.com/faiface/beep/effects"
-	"github.com/faiface/beep/vorbis"
 	"github.com/faiface/beep/wav"
 	"io"
 	"log"
