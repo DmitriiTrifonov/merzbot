@@ -1,2 +1,2 @@
-# merzbowfier-bot
+# merzbot
 A Telegram bot
