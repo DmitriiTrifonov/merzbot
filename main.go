@@ -1,19 +1,28 @@
 package main
 
 import (
+	"fmt"
 	"github.com/DmitriiTrifonov/merzbowfier-bot/noise"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 )
 
 const (
 	errorMessage = "Cannot process the data!"
 	message      = "Please send me a voice message"
 )
+
+func randInt() int {
+	seed := rand.NewSource(time.Now().UnixNano())
+	rnd := rand.New(seed)
+	return rnd.Int()
+}
 
 func main() {
 	port := os.Getenv("PORT")
@@ -35,54 +44,147 @@ func main() {
 		log.Fatal(err)
 	}
 
-	b.Handle("/start", func(m *tb.Message) {
+	returnMessage := func(m *tb.Message) {
 		if !m.Private() {
 			return
 		}
 		_, _ = b.Send(m.Sender, message)
-	})
+	}
+
+	b.Handle("/start", returnMessage)
 
 	b.Handle(tb.OnVoice, func(m *tb.Message) {
-		log.Println("Cathed a voice message")
+		id := randInt()
+
 		voiceId := m.Voice.FileID
 		url, err := b.FileURLByID(voiceId)
+		log.Println("Got the url:", url)
+
 		if err != nil {
-			_, _ = b.Send(m.Sender, errorMessage)
+			if _, err := b.Send(m.Sender, errorMessage); err != nil {
+				log.Println(err)
+			}
 			return
 		}
-		log.Println(url)
+
 		resp, err := http.Get(url)
 		if err != nil {
-			_, _ = b.Send(m.Sender, errorMessage)
+			log.Println(err)
+			if _, err := b.Send(m.Sender, errorMessage); err != nil {
+				log.Println(err)
+			}
 			return
 		}
-		tempFile, err := os.Create("in.oga")
-		_, err = io.Copy(tempFile, resp.Body)
-		cmdOgaToWav := exec.Command("ffmpeg", "-i", "in.oga", "in.wav")
+
+		inNameOga := fmt.Sprintf("in%d.oga", id)
+		inNameWav := fmt.Sprintf("in%d.wav", id)
+
+		inFileOga, err := os.Create(inNameOga)
+		if err != nil {
+			log.Println(err)
+			if _, err := b.Send(m.Sender, errorMessage); err != nil {
+				log.Println(err)
+			}
+			return
+		}
+		_, err = io.Copy(inFileOga, resp.Body)
+		if err != nil {
+			log.Println(err)
+			if _, err := b.Send(m.Sender, errorMessage); err != nil {
+				log.Println(err)
+			}
+			return
+		}
+
+		cmdOgaToWav := exec.Command("ffmpeg", "-i", inNameOga, inNameWav)
 		err = cmdOgaToWav.Run()
 		if err != nil {
 			log.Println(err)
+			if _, err := b.Send(m.Sender, errorMessage); err != nil {
+				log.Println(err)
+			}
+			return
 		}
-		tempWav, err := os.Open("in.wav")
-		defer tempWav.Close()
-		fWrite, err := os.Create("out.wav")
-		err = noise.ProcessVoice(tempWav, fWrite)
+
+		inFileWav, err := os.Open(inNameWav)
 		if err != nil {
 			log.Println(err)
+			if _, err := b.Send(m.Sender, errorMessage); err != nil {
+				log.Println(err)
+			}
+			return
 		}
-		cmdWavToOga := exec.Command("ffmpeg", "-i", "out.wav", "-acodec", "libopus", "out.oga")
+
+		outNameWav := fmt.Sprintf("out%d.wav", id)
+		outFileWav, err := os.Create(outNameWav)
+		if err != nil {
+			log.Println(err)
+			if _, err := b.Send(m.Sender, errorMessage); err != nil {
+				log.Println(err)
+			}
+			return
+		}
+
+		err = noise.ProcessVoice(inFileWav, outFileWav)
+		if err != nil {
+			log.Println(err)
+			if _, err := b.Send(m.Sender, errorMessage); err != nil {
+				log.Println(err)
+			}
+			return
+		}
+
+		err = inFileWav.Close()
+		if err != nil {
+			log.Println(err)
+			if _, err := b.Send(m.Sender, errorMessage); err != nil {
+				log.Println(err)
+			}
+			return
+		}
+
+		outNameOga := fmt.Sprintf("out%d.oga", id)
+		cmdWavToOga := exec.Command("ffmpeg", "-i", outNameWav, "-acodec", "libopus", outNameOga)
 		err = cmdWavToOga.Run()
-		p := &tb.Voice{
-			File: tb.FromDisk("out.oga"),
+		if err != nil {
+			log.Println(err)
+			if _, err := b.Send(m.Sender, errorMessage); err != nil {
+				log.Println(err)
+			}
+			return
 		}
-		_, err = b.Send(m.Sender, p)
+
+		p := &tb.Voice{
+			File: tb.FromDisk(outNameOga),
+		}
+
+		if m.Private() {
+			_, err = b.Send(m.Sender, p)
+			if err != nil {
+				log.Println(err)
+				if _, err := b.Send(m.Sender, errorMessage); err != nil {
+					log.Println(err)
+				}
+				return
+			}
+		} else {
+			_, err = b.Reply(m, p)
+			if err != nil {
+				log.Println(err)
+				if _, err := b.Send(m.Sender, errorMessage); err != nil {
+					log.Println(err)
+				}
+				return
+			}
+		}
+
+		err = os.Remove(inNameOga)
+		err = os.Remove(outNameOga)
+		err = os.Remove(inNameWav)
+		err = os.Remove(outNameWav)
 		if err != nil {
 			log.Println(err)
 		}
-		err = os.Remove("in.oga")
-		err = os.Remove("out.oga")
-		err = os.Remove("in.wav")
-		err = os.Remove("out.wav")
 	})
 
 	b.Start()
