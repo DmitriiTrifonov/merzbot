@@ -134,15 +134,6 @@ func main() {
 			return
 		}
 
-		err = inFileWav.Close()
-		if err != nil {
-			log.Println(err)
-			if _, err := b.Send(m.Sender, errorMessage); err != nil {
-				log.Println(err)
-			}
-			return
-		}
-
 		outNameOga := fmt.Sprintf("out%d.oga", id)
 		cmdWavToOga := exec.Command("ffmpeg", "-i", outNameWav, "-acodec", "libopus", outNameOga)
 		err = cmdWavToOga.Run()
