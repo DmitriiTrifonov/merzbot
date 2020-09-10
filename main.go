@@ -71,7 +71,10 @@ func main() {
 		p := &tb.Voice{
 			File: tb.FromDisk("out.oga"),
 		}
-		_, _ = b.Send(m.Sender, p)
+		_, err = b.Send(m.Sender, p)
+		if err != nil {
+			log.Println(err)
+		}
 		err = os.Remove("in.oga")
 		err = os.Remove("out.oga")
 		err = os.Remove("in.wav")
