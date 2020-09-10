@@ -36,6 +36,9 @@ func main() {
 	}
 
 	b.Handle("/start", func(m *tb.Message) {
+		if !m.Private() {
+			return
+		}
 		_, _ = b.Send(m.Sender, message)
 	})
 
