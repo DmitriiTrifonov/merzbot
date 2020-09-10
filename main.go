@@ -40,6 +40,7 @@ func main() {
 	})
 
 	b.Handle(tb.OnVoice, func(m *tb.Message) {
+		log.Println("Cathed a voice message")
 		voiceId := m.Voice.FileID
 		url, err := b.FileURLByID(voiceId)
 		if err != nil {
