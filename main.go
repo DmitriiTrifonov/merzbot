@@ -170,8 +170,20 @@ func main() {
 		}
 
 		err = os.Remove(inNameOga)
+		if err != nil {
+			log.Println(err)
+		}
+		
 		err = os.Remove(outNameOga)
+		if err != nil {
+			log.Println(err)
+		}
+		
 		err = os.Remove(inNameWav)
+		if err != nil {
+			log.Println(err)
+		}
+		
 		err = os.Remove(outNameWav)
 		if err != nil {
 			log.Println(err)
